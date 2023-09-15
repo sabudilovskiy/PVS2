@@ -14,6 +14,14 @@ unsigned short int CURRENT_SPEED = 0; // текущая скорость
 const unsigned short int MIN_SPEED = 0; // минимальная скорость
 const unsigned short int MAX_SPEED = 4; // максимальная скорость
 
+const int motor_speed_pins[]= {
+    MOTOR_SPEED_0,
+    MOTOR_SPEED_1,
+    MOTOR_SPEED_2,
+    MOTOR_SPEED_3,
+    MOTOR_SPEED_4
+};
+
 #define MAX_LENGTH_COMMAND 15
 
 char buffer_command[MAX_LENGTH_COMMAND + 1];
@@ -61,40 +69,55 @@ enum Command GetCommand() {
   return kUnknown;
 }
 
+void TurnOffResistor(int number_resister){
+    if (number_resister < 0 || number_resister > 4){
+        return;
+    }
+    int pin = motor_speed_pins[number_resister];
+    PORTB &= ~(1 << pin);
+}
+
+void TurnOnResistor(int number_resister){
+    if (number_resister < 0 || number_resister > 4){
+        return;
+    }
+    int pin = motor_speed_pins[number_resister];
+    PORTB |= (1 << pin);
+}
+
+void refactored_switch_speed(int choosen_speed){
+    
+    for (int i = 0; i < 5; i++){
+       TurnOffResistor(i);
+    }
+    TurnOnResistor(choosen_speed);
+}
+
 void signal_to_change_speed(int CHANGE_SPEED) {
   PORTD ^= (1 << CHANGE_SPEED);
   PORTD ^= (1 << CHANGE_SPEED);
 }
 
-void switch_speed(int MOTOR_SPEED_ON, int MOTOR_SPEED_OFF1, int MOTOR_SPEED_OFF2,
-                  int MOTOR_SPEED_OFF3, int MOTOR_SPEED_OFF4) {
-  PORTB &= ~(1 << MOTOR_SPEED_OFF1);
-  PORTB &= ~(1 << MOTOR_SPEED_OFF2);
-  PORTB &= ~(1 << MOTOR_SPEED_OFF3);
-  PORTB &= ~(1 << MOTOR_SPEED_OFF4);
-  PORTB |= (1 << MOTOR_SPEED_ON);
-}
-
-void choose_speed(int choosen_speed, int MOTOR_SPEED_ON, int MOTOR_SPEED_OFF1,
-                  int MOTOR_SPEED_OFF2, int MOTOR_SPEED_OFF3, int MOTOR_SPEED_OFF4) {
+void SendSpeedToDisplay(int choosen_speed){
   if (CURRENT_SPEED > choosen_speed) {
     while (CURRENT_SPEED > choosen_speed) {
       signal_to_change_speed(SPEED_DOWN_OUT);
       CURRENT_SPEED -= 1;
       _delay_ms(20);
     }
-    switch_speed(MOTOR_SPEED_ON, MOTOR_SPEED_OFF1, MOTOR_SPEED_OFF2,
-                 MOTOR_SPEED_OFF3, MOTOR_SPEED_OFF4);
   }
-  if (CURRENT_SPEED < choosen_speed) {
+  else if (CURRENT_SPEED < choosen_speed) {
     while (CURRENT_SPEED < choosen_speed) {
       signal_to_change_speed(SPEED_UP_OUT);
       CURRENT_SPEED += 1;
       _delay_ms(20);
     }
-    switch_speed(MOTOR_SPEED_ON, MOTOR_SPEED_OFF1, MOTOR_SPEED_OFF2,
-                 MOTOR_SPEED_OFF3, MOTOR_SPEED_OFF4);
   }
+}
+
+void SetSpeed(int choosen_speed) {
+  SendSpeedToDisplay(choosen_speed);
+  refactored_switch_speed(choosen_speed);
 }
 
 void start_engine() {
@@ -121,31 +144,6 @@ void stop_engine() {
     PORTB ^= (1 << MOTOR_SPEED_0);
     MOTOR_STATUS = 0;
   }
-}
-
-void SetZeroSpeed() {
-  choose_speed(0, MOTOR_SPEED_0, MOTOR_SPEED_1, MOTOR_SPEED_2, MOTOR_SPEED_3,
-               MOTOR_SPEED_4);
-}
-
-void SetFirstSpeed() {
-  choose_speed(1, MOTOR_SPEED_1, MOTOR_SPEED_0, MOTOR_SPEED_2, MOTOR_SPEED_3,
-               MOTOR_SPEED_4);
-}
-
-void SetSecondSpeed() {
-  choose_speed(2, MOTOR_SPEED_2, MOTOR_SPEED_0, MOTOR_SPEED_1, MOTOR_SPEED_3,
-               MOTOR_SPEED_4);
-}
-
-void SetThirstSpeed() {
-  choose_speed(3, MOTOR_SPEED_3, MOTOR_SPEED_0, MOTOR_SPEED_1, MOTOR_SPEED_2,
-               MOTOR_SPEED_4);
-}
-
-void SetFourthSpeed() {
-  choose_speed(4, MOTOR_SPEED_4, MOTOR_SPEED_0, MOTOR_SPEED_1, MOTOR_SPEED_2,
-               MOTOR_SPEED_3);
 }
 
 void SetForwardRotation() {
@@ -186,23 +184,23 @@ ISR(USART_RXC_vect) {
     break;
   case stop:
     // стоп
-    SetZeroSpeed();
+    SetSpeed(0);
     stop_engine();
     break;
   case zero_speed:
-    SetZeroSpeed();
+    SetSpeed(0);
     break;
   case first_speed:
-    SetFirstSpeed();
+    SetSpeed(1);
     break;
   case second_speed:
-    SetSecondSpeed();
+    SetSpeed(2);
     break;
   case thirst_speed:
-    SetThirstSpeed();
+    SetSpeed(3);
     break;
   case fourth_speed:
-    SetFourthSpeed();
+    SetSpeed(4);
     break;
   case forward:
     SetForwardRotation();
