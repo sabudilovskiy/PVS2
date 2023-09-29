@@ -15,7 +15,6 @@ const unsigned short int MIN_SPEED = 0; // минимальная скорост
 const unsigned short int MAX_SPEED = 4; // максимальная скорость
 
 const int motor_speed_pins[]= {
-    MOTOR_SPEED_0,
     MOTOR_SPEED_1,
     MOTOR_SPEED_2,
     MOTOR_SPEED_3,
@@ -73,7 +72,7 @@ void TurnOffResistor(int number_resister){
     if (number_resister < 0 || number_resister > 4){
         return;
     }
-    int pin = motor_speed_pins[number_resister];
+    int pin = motor_speed_pins[number_resister - 1];
     PORTB &= ~(1 << pin);
 }
 
@@ -81,16 +80,16 @@ void TurnOnResistor(int number_resister){
     if (number_resister < 0 || number_resister > 4){
         return;
     }
-    int pin = motor_speed_pins[number_resister];
+    int pin = motor_speed_pins[number_resister - 1];
     PORTB |= (1 << pin);
 }
 
 void refactored_switch_speed(int choosen_speed){
     
-    for (int i = 0; i < 5; i++){
+    for (int i = 1; i < 5; i++){
        TurnOffResistor(i);
     }
-    TurnOnResistor(choosen_speed);
+    if (choosen_speed != 0) TurnOnResistor(choosen_speed);
 }
 
 void signal_to_change_speed(int CHANGE_SPEED) {
@@ -123,12 +122,10 @@ void SetSpeed(int choosen_speed) {
 void start_engine() {
   if (MOTOR_STATUS == 0 && MOTOR_MODE == 0) {
     PORTC ^= (1 << MOTOR_FORWARD);
-    PORTB ^= (1 << MOTOR_SPEED_0);
     MOTOR_STATUS = 1;
   }
   if (MOTOR_STATUS == 0 && MOTOR_MODE == 1) {
     PORTC ^= (1 << MOTOR_REVERSE);
-    PORTB ^= (1 << MOTOR_SPEED_0);
     MOTOR_STATUS = 1;
   }
 }
@@ -136,12 +133,10 @@ void start_engine() {
 void stop_engine() {
   if (MOTOR_STATUS == 1 && MOTOR_MODE == 0) {
     PORTC ^= (1 << MOTOR_FORWARD);
-    PORTB ^= (1 << MOTOR_SPEED_0);
     MOTOR_STATUS = 0;
   }
   if (MOTOR_STATUS == 1 && MOTOR_MODE == 1) {
     PORTC ^= (1 << MOTOR_REVERSE);
-    PORTB ^= (1 << MOTOR_SPEED_0);
     MOTOR_STATUS = 0;
   }
 }
